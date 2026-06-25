@@ -1,11 +1,11 @@
 @component('mail::message')
-# 👋 Bonjour {{ $userName }} !
+#  Bonjour {{ $userName }} !
 
 Nous vous rappelons que votre projet **"{{ $projectName }}"** arrive bientôt à échéance.
 
 @component('mail::panel')
-📅 **Date limite :** {{ $deadline }}
-⏰ **Jours restants :** {{ $daysLeft }} jour(s)
+**Date limite :** {{ $deadline }}
+**Jours restants :** {{ $daysLeft }} jour(s)
 @endcomponent
 
 Pensez à vérifier l'avancement de vos tâches pour respecter le délai.

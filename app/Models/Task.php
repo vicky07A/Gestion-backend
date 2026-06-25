@@ -26,4 +26,12 @@ class Task extends Model
     {
         return $this->belongsTo(Project::class);
     }
+
+    /**
+ * Une tâche peut avoir plusieurs commentaires
+ */
+public function comments()
+{
+    return $this->hasMany(Comment::class)->with('user')->latest();
+}
 }

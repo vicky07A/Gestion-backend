@@ -28,7 +28,7 @@ class ProjectController extends Controller
 
     /**
      * CRÉER — Crée un nouveau projet pour l'utilisateur connecté
-     * Reçoit : name, description, deadline
+     * Reçoit : name, description, deadline, date_debut
      */
     public function store(Request $request)
     {
@@ -37,6 +37,7 @@ class ProjectController extends Controller
             'name'        => 'required|string|max:255',
             'description' => 'nullable|string',
             'deadline'    => 'nullable|date',
+            'date_debut'  => 'nullable|date',
         ]);
 
         // On crée le projet en liant automatiquement l'utilisateur connecté
@@ -45,6 +46,7 @@ class ProjectController extends Controller
             'name'        => $request->name,
             'description' => $request->description,
             'deadline'    => $request->deadline,
+            'date_debut'  => $request->date_debut,
         ]);
 
         return response()->json($project, 201);
@@ -69,7 +71,7 @@ class ProjectController extends Controller
 
     /**
      * MODIFIER — Met à jour les informations d'un projet
-     * Reçoit : name, description, deadline (tous optionnels)
+     * Reçoit : name, description, deadline, date_debut (tous optionnels)
      */
     public function update(Request $request, Project $project)
     {
@@ -82,10 +84,11 @@ class ProjectController extends Controller
             'name'        => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'deadline'    => 'nullable|date',
+            'date_debut'  => 'nullable|date',
         ]);
 
-        // On met à jour uniquement les champs envoyés
-        $project->update($request->only(['name', 'description', 'deadline']));
+        // On met à jour uniquement les champs autorisés
+        $project->update($request->only(['name', 'description', 'deadline', 'date_debut']));
 
         return response()->json($project);
     }
@@ -113,5 +116,26 @@ class ProjectController extends Controller
         return response()->json([
             'message' => 'Projet supprimé avec succès.'
         ]);
+    }
+
+    /**
+     * ALERTES — Récupère uniquement les projets urgents ou en retard
+     */
+    public function alerts(Request $request)
+    {
+        $projects = Project::where('user_id', $request->user()->id)
+            ->withCount(['tasks', 'tasks as tasks_done_count' => function ($query) {
+                $query->where('status', 'done');
+            }])
+            ->get();
+
+        // On filtre la collection pour ne garder que ce qui est urgent ou en retard
+        $alerts = $projects->filter(function ($project) {
+            // Un projet est en alerte s'il est urgent ou en retard ET qu'il n'est pas à 100% terminé
+            $is_finished = $project->tasks_count > 0 && ($project->tasks_done_count === $project->tasks_count);
+            return ($project->is_urgent || $project->is_overdue) && !$is_finished;
+        })->values(); // .values() pour réinitialiser les clés du tableau JSON
+
+        return response()->json($alerts);
     }
 }
